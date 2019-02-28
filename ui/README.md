@@ -9,21 +9,6 @@
 
 **Nuxeo UI Elements** is an ongoing work to develop a set of UI elements for building Polymer applications with Nuxeo.
 
-## Dependencies
-
-Element dependencies are managed via [Bower](http://bower.io/). You can
-install that via:
-
-    npm install -g bower
-
-Then, go ahead and download the element's dependencies:
-
-    bower install
-
-## Reference nuxeo-ui-elements in your Bower dependencies
-
-    bower install -S nuxeo/nuxeo-ui-elements
-
 ## Quickstart
 
 We recommend that you use [Polymer CLI](https://github.com/Polymer/polymer-cli) which you can install via:
