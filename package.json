@@ -3,7 +3,8 @@
   "keywords": [
     "nuxeo",
     "web-components",
-    "polymer"
+    "polymer",
+    "ui"
   ],
   "repository": "nuxeo/nuxeo-elements.git",
   "name": "@nuxeo/nuxeo-elements",

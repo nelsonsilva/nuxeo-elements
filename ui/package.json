@@ -9,8 +9,8 @@
     "metrics",
     "d3js"
   ],
-  "repository": "nuxeo/nuxeo-ui-elements",
-  "homepage": "https://github.com/nuxeo/nuxeo-ui-elements/",
+  "repository": "nuxeo/nuxeo-elements",
+  "homepage": "https://github.com/nuxeo/nuxeo-elements/",
   "author": "Nuxeo",
   "license": "Apache 2.0",
   "scripts": {
