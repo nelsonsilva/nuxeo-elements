@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ github_actions ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    env:
+      SELENIUM_HUB_HOST: localhost
+      SELENIUM_HUB_PORT: 4444
+
+    services:
+      hub:
+        image: selenium/hub:3.141.59-20200326
+        ports:
+        - 4444:4444
+      chrome:
+        image: selenium/node-chrome:3.141.59-20200326
+        env:
+          HUB_HOST: hub
+          HUB_PORT: 4444
+      firefox:
+        image: selenium/node-firefox:3.141.59-20200326
+        env:
+          HUB_HOST: hub
+          HUB_PORT: 4444
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 10
+
+    - name: Install dependencies and bootstrap
+      run: |
+        npm config set @nuxeo:registry https://packages.nuxeo.com/repository/npm-public-archives/
+        npm install --no-package-lock
+        npm run bootstrap -- --no-ci
+    
+    - name: Lint
+      run: npm run lint
+
+    - name: Test
+      run: npm run test

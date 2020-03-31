@@ -15,6 +15,24 @@ let customLaunchers = {
   },
 };
 
+if (process.env.SELENIUM_HUB_HOST) {
+  const config = {
+    hostname: process.env.SELENIUM_HUB_HOST,
+    port: process.env.SELENIUM_HUB_PORT,
+  };
+  customLaunchers = {
+    chrome: {
+      config,
+      base: 'WebDriver',
+      browserName: 'chrome',
+    },
+    firefox: {
+      config,
+      base: 'WebDriver',
+      browserName: 'firefox',
+    },
+  };
+}
 if (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY) {
   customLaunchers = {
     sl_latest_chrome: {
