@@ -15,9 +15,15 @@
     "serve": "polymer serve --npm -c ../node_modules"
   },
   "dependencies": {
+    "@apollo-elements/polymer": "^1.1.5",
     "@polymer/polymer": "^3.0.0",
     "@webcomponents/webcomponentsjs": "^2.0.0",
-    "nuxeo": "^3.2.1"
+    "apollo-cache-inmemory": "^1.6.5",
+    "apollo-link-batch-http": "^1.2.13",
+    "apollo-link-http": "^1.5.16",
+    "apollo-link-ws": "^1.0.19",
+    "nuxeo": "^3.2.1",
+    "subscriptions-transport-ws": "^0.9.16"
   },
   "devDependencies": {
     "@open-wc/testing-helpers": "^0.8.3",

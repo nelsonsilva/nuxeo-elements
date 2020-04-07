@@ -20,6 +20,69 @@ import { timeOut } from '@polymer/polymer/lib/utils/async.js';
 import './nuxeo-element.js';
 import './nuxeo-resource.js';
 
+import { client } from './graphql-client';
+import gql from 'graphql-tag';
+
+const QUERY = gql`
+  query Tasks($params: JSONObject, $pagination: PaginationArguments) {
+    tasks(params: $params, pagination: $pagination) {
+      resultsCount
+      pageSize
+      maxPageSize
+      resultsCountLimit
+      currentPageSize
+      currentPageIndex
+      currentPageOffset
+      numberOfPages
+      isPreviousPageAvailable
+      isNextPageAvailable
+      isLastPageAvailable
+      isSortable
+      hasError
+      errorMessage
+      totalSize
+      pageIndex
+      pageCount
+
+      entries {
+        ...on Task {
+          id
+          name
+          workflowInstanceId
+          workflowModelName
+          workflowInitiator
+          workflowTitle
+          workflowLifeCycleState
+          graphResource
+          state
+          directive
+          created
+          dueDate
+          nodeName
+          targetDocumentIds {
+            uid
+          }
+          actors {
+            id
+          }
+          delegatedActors {
+            id
+          }
+          comments
+          variables
+          taskInfo {
+            taskActions {
+              name
+              url
+              label
+              validate
+            }
+          }
+        }
+      }
+    }
+  }`;
+
 {
   /**
    * `nuxeo-task-page-provider` returns workflow tasks and provides paginated results.
@@ -28,6 +91,7 @@ import './nuxeo-resource.js';
    * @demo demo/nuxeo-task-page-provider.html
    */
   class TaskPageProvider extends Nuxeo.Element {
+    /*
     static get template() {
       return html`
         <style>
@@ -40,6 +104,7 @@ import './nuxeo-resource.js';
         </nuxeo-resource>
       `;
     }
+    */
 
     static get is() {
       return 'nuxeo-task-page-provider';
@@ -201,9 +266,11 @@ import './nuxeo-resource.js';
 
     ready() {
       super.ready();
+      /*
       this.$.nxResource.addEventListener('loading-changed', () => {
         this._setLoading(this.$.nxResource.loading);
       });
+      */
     }
 
     /**
@@ -215,9 +282,25 @@ import './nuxeo-resource.js';
       if (!this.headers) {
         this.headers = {};
       }
-      this.$.nxResource.params = this._params;
-      return this.$.nxResource
-        .execute()
+
+      const params = this._params;
+      const { currentPageIndex, offset, pageSize } = params;
+      const pagination = {
+        currentPageIndex,
+        pageSize,
+        offset
+      };
+      return client.query({
+        query: QUERY,
+        variables: {
+          params,
+          pagination
+        }
+      }).then(({ data: { tasks } }) => tasks)
+
+      //this.$.nxResource.params = this._params;
+      //return this.$.nxResource
+      //  .execute()
         .then((response) => {
           this.currentPage = response.entries.slice(0);
           this.numberOfPages = response.numberOfPages;
@@ -273,9 +356,9 @@ import './nuxeo-resource.js';
 
     _autoFetch() {
       // Reset the page if the query changes
-      if (this.$.nxResource.params) {
-        this.page = 1;
-      }
+      // if (this.$.nxResource.params) {
+      //  this.page = 1;
+      // }
       if (this.auto) {
         // debounce in case of multiple param changes
         this._debouncer = Debouncer.debounce(this._debouncer, timeOut.after(this.autoDelay), () => this.fetch());

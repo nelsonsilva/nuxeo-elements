@@ -17,8 +17,60 @@ limitations under the License.
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import { Debouncer } from '@polymer/polymer/lib/utils/debounce.js';
 import { timeOut } from '@polymer/polymer/lib/utils/async.js';
+
+import { client } from './graphql-client';
+import gql from 'graphql-tag';
+
 import './nuxeo-element.js';
 import './nuxeo-resource.js';
+
+const QUERY = gql`
+  query Search($provider: String, $query: String, $params: JSONObject, $queryParams: [String], $pagination: PaginationArguments, $schemas: [String], $enrichers: Enrichers) {
+    search(provider: $provider, query: $query, params: $params, queryParams: $queryParams, pagination: $pagination) {
+      resultsCount
+      pageSize
+      maxPageSize
+      resultsCountLimit
+      currentPageSize
+      currentPageIndex
+      currentPageOffset
+      numberOfPages
+      isPreviousPageAvailable
+      isNextPageAvailable
+      isLastPageAvailable
+      isSortable
+      hasError
+      errorMessage
+      totalSize
+      pageIndex
+      pageCount
+
+      entries {
+        ... on Document {
+          uid
+          path
+          title
+          repository
+          state
+          type
+          parentRef
+          isCheckedOut
+          isRecord
+          retainUntil
+          hasLegalHold
+          isUnderRetentionOrLegalHold
+          isVersion
+          isProxy
+          changeToken
+          isTrashed
+          lastModified
+          facets
+          properties(schemas: $schemas)
+          contextParameters(enrichers: $enrichers)
+        }
+      }
+    }
+  }`;
 
 {
   /**
@@ -52,6 +104,7 @@ import './nuxeo-resource.js';
    * @demo demo/nuxeo-page-provider.html
    */
   class PageProvider extends Nuxeo.Element {
+    /*
     static get template() {
       return html`
         <style>
@@ -71,6 +124,7 @@ import './nuxeo-resource.js';
         </nuxeo-resource>
       `;
     }
+    */
 
     static get is() {
       return 'nuxeo-page-provider';
@@ -285,7 +339,7 @@ import './nuxeo-resource.js';
     }
 
     static get observers() {
-      return ['_autoFetch(auto, provider, query, params.*, pageSize, page, sort)'];
+      return ['_autoFetch(auto, provider, query, params.*, pageSize, page, sort, schemas, enrichers)'];
     }
 
     /**
@@ -302,9 +356,9 @@ import './nuxeo-resource.js';
 
     ready() {
       super.ready();
-      this.$.nxResource.addEventListener('loading-changed', () => {
-        this._setLoading(this.$.nxResource.loading);
-      });
+      // this.$.nxResource.addEventListener('loading-changed', () => {
+      //   this._setLoading(this.$.nxResource.loading);
+      // });
     }
 
     /**
@@ -316,6 +370,7 @@ import './nuxeo-resource.js';
      *   - "skipAggregates" to do not compute aggregations (boolean)
      */
     fetch(options) {
+
       if (!this.headers) {
         this.headers = {};
       }
@@ -325,15 +380,37 @@ import './nuxeo-resource.js';
         delete this.headers.skipAggregates;
       }
 
-      const params = this._params;
-      // move named parameters
-      if (params.namedParameters) {
-        Object.assign(params, params.namedParameters);
-        delete params.namedParameters;
+      const { provider, query, schemas } = this;
+      let { enrichers } = this;
+      if (typeof enrichers === 'string') {
+        enrichers = {document: enrichers ? enrichers.split(',') : []};
       }
-      this.$.nxResource.params = params;
-      return this.$.nxResource
-        .execute()
+      const { namedParameters: params, queryParams, currentPageIndex, pageSize } = this._params;
+
+      const pagination = {
+        currentPageIndex,
+        pageSize
+      };
+      return client.query({
+        query: QUERY,
+        variables: {
+          provider,
+          query,
+          params,
+          queryParams,
+          pagination,
+          enrichers,
+          schemas
+        }
+      }).then(({ data: { search } }) => search)
+
+      // move named parameters
+      // if (params.namedParameters) {
+      //   Object.assign(params, params.namedParameters);
+      //   delete params.namedParameters;
+      // }
+      // this.$.nxResource.params = params;
+      // return this.$.nxResource.execute()
         .then((response) => {
           this.currentPage = response.entries.slice(0);
           this.numberOfPages = response.numberOfPages;
@@ -434,6 +511,7 @@ import './nuxeo-resource.js';
 
     _autoFetch() {
       // Reset the page if the query changes
+      /*
       if (
         this.$.nxResource.params &&
         this.query &&
@@ -442,6 +520,7 @@ import './nuxeo-resource.js';
       ) {
         this.page = 1;
       }
+      */
       if (this.auto && (this.query || this.provider)) {
         // debounce in case of multiple param changes
 
