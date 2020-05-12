@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - github_actions
+      - master
   pull_request:
     branches:
-      - github_actions
+      - master
 
 jobs:
   build:

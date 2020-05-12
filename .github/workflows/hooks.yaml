@@ -1,0 +1,40 @@
+name: PR
+
+on:
+  pull_request:
+    types:
+      - opened
+    branches:
+      - master
+
+jobs:
+  jira:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+    - name: JIRA Login
+      # XXX - atlasstin/gajira-login@ relies on rest api v3
+      uses: nelsonsilva/gajira-login@dcee5e3
+      env:
+        JIRA_BASE_URL: http://jira.nuxeo.com
+        JIRA_USER_EMAIL: hudson
+        JIRA_API_TOKEN: ${{ secrets.JIRA_TOKEN }}
+    - name: Find JIRA ticket
+      id: find
+      # XXX: atlasstin/gajira-find-issue-key doesn't work for PR
+      uses: nelsonsilva/gajira-find-issue-key@b01ef1b
+      with:
+        from: branch
+    - uses: actions/github-script@0.9.0
+      if: steps.find.outputs.issue
+      env:
+        JIRA_TICKET: ${{ steps.find.outputs.issue }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `[View issue in JIRA](http://jira.nuxeo.com/browse/${process.env.JIRA_TICKET})`
+          })
