@@ -61,5 +61,5 @@ jobs:
       run: npm run deploy -- --ci
     - name: Publish
       if: github.ref == 'refs/heads/master'
-      run: npx lerna exec --ignore @nuxeo/nuxeo-elements-storybook -- npm publish --tag SNAPSHOT
+      run: npx lerna exec --ignore @nuxeo/nuxeo-elements-storybook -- npm publish --registry=https://packages.nuxeo.com/repository/npm-public/ --tag SNAPSHOT
     
