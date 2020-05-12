@@ -47,7 +47,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           github.issues.createComment({
-            issue_number: context.pull_request.number,
+            issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: `:star: PR built and available [here](${process.env.PREVIEW_URL})`
