@@ -22,19 +22,19 @@ jobs:
     - name: Find JIRA ticket
       id: find
       # XXX: atlasstin/gajira-find-issue-key doesn't work for PR
-      uses: nelsonsilva/gajira-find-issue-key@b01ef1b
-      with:
-        from: branch
+      uses: nelsonsilva/gajira-find-issue-key@6ef5875
     - uses: actions/github-script@0.9.0
-      if: steps.find.outputs.issue
+      if: steps.find.outputs.issues
       env:
-        JIRA_TICKET: ${{ steps.find.outputs.issue }}
+        JIRA_TICKETS: ${{ steps.find.outputs.issue }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          const links = process.env.JIRA_TICKET
+            .map((issue) => `- [${issue.key}](http://jira.nuxeo.com/browse/${issue.key}) ${issue.summary}`)
           github.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `[View issue in JIRA](http://jira.nuxeo.com/browse/${process.env.JIRA_TICKET})`
+            body: `View issues in JIRA:\n${links.join('\n')}`
           })
