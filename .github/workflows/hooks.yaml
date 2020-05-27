@@ -2,8 +2,8 @@ name: PR
 
 on:
   pull_request:
-    types:
-      - opened
+    # types:
+    #   - opened
     branches:
       - master
 
@@ -22,7 +22,7 @@ jobs:
     - name: Find JIRA ticket
       id: find
       # XXX: atlasstin/gajira-find-issue-key doesn't work for PR
-      uses: nelsonsilva/gajira-find-issue-key@6ef5875
+      uses: nelsonsilva/gajira-find-issue-key@b2d07f4
     - uses: actions/github-script@0.9.0
       if: steps.find.outputs.issues
       env:
