@@ -1,0 +1,7 @@
+hideHelp: true
+buttons:
+  - title: Promote release
+    action: "promote"
+    description: Promote a release candidate
+    arguments:
+      - name: version
