@@ -30,7 +30,7 @@ jobs:
         run: |
           git commit -a -m "Release $VERSION"
           git tag -a v$VERSION -m "Release $VERSION"
-          git push origin v$VERSION
+          # git push origin v$VERSION
 
       - name: Create Github release v${{ env.VERSION }}
         uses: actions/create-release@v1
@@ -44,13 +44,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PACKAGES_TOKEN }}
         run: |
-          npx lerna exec --ignore @nuxeo/nuxeo-elements-storybook -- npm publish --@nuxeo:registry=https://packages.nuxeo.com/repository/npm-public/
+          npx lerna exec --ignore @nuxeo/nuxeo-elements-storybook -- npm publish --@nuxeo:registry=https://packages.nuxeo.com/repository/npm-public/ --dry-run
 
       - name: Publish to https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN }}
         run: |
-          npx lerna exec --ignore @nuxeo/nuxeo-elements-storybook -- npm publish --@nuxeo:registry=https://registry.npmjs.org
+          npx lerna exec --ignore @nuxeo/nuxeo-elements-storybook -- npm publish --@nuxeo:registry=https://registry.npmjs.org --dry-run
       
       - uses: actions/checkout@v2
         with:
@@ -65,4 +65,4 @@ jobs:
 
           # commit and push
           git commit -a -m "Update to $NEW_VERSION"
-          git push origin master
+          # git push origin master
