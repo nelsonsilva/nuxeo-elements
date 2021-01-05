@@ -8,12 +8,25 @@ on:
     branches:
       - github_actions
 
+env:
+  GKE_CLUSTER: jx-prod
+  GKE_ZONE: us-east1-b
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      PREVIEW_URL: nuxeo-elements-pr-${{github.event.number}}.surge.sh
     steps:
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v0.2.1
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+        project_id: ${{ secrets.GKE_PROJECT }}
+        credentials: ${{ secrets.GKE_SA_KEY }}
+
+    - name: List namespaces
+      run: kubectl get namespaces
+
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
       with:
@@ -30,13 +43,14 @@ jobs:
     - name: Lint
       run: npm run lint
     - name: Test
+      if: ${{ false }}
       env:
         SAUCE_USERNAME: nuxeo-elements
         SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
       run: npm run test
     - name: Analysis
       run: npx lerna run analysis --parallel
-    - name: Preview
+    - name: Build preview
       if: github.event_name == 'pull_request'
       run: |
         npx build-storybook -o dist -s ./public
