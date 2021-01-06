@@ -1,0 +1,104 @@
+name: Preview
+
+on:
+  push:
+    branches:
+      - github_actions
+  pull_request:
+    branches:
+      - github_actions
+
+env:
+  DOCKER_REGISTRY: docker-registry.webui.dev.nuxeo.com
+  GKE_CLUSTER: jx-prod
+  GKE_ZONE: us-east1-b
+
+jobs:
+  storybook:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 12
+        registry-url: 'https://packages.nuxeo.com/repository/npm-public/'
+        scope: '@nuxeo'
+
+    - name: Prepare environment
+      run: |
+        BRANCH_NAME=${GITHUB_REF##*/}
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+        echo "VERSION=$(npx -c 'echo "$npm_package_version"')-$BRANCH_NAME" >> $GITHUB_ENV
+        echo "PREVIEW_NAMESPACE=nuxeo-elements-preview-$BRANCH_NAME" >> $GITHUB_ENV
+
+    - name: Install
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      run: |
+        npm install --no-package-lock
+        npm run bootstrap
+
+    - name: Run analysis
+      run: npx lerna run analysis --parallel
+
+    - name: Build storybook
+      working-directory: ./storybook
+      run: |
+        npx build-storybook -o dist -s ./public
+
+    - name: Build and push image
+      uses: docker/build-push-action@v1
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        path: ./storybook
+        push: true
+        repository: nuxeo/nuxeo-elements/storybook
+        tags: ${{ env.VERSION }}
+
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v0.2.1
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+        project_id: ${{ secrets.GKE_PROJECT }}
+        credentials: ${{ secrets.GKE_SA_KEY }}
+
+    - name: Check preview namespace
+      id: preview_ns
+      run: |
+        echo ::set-output name=exists::$(kubectl get namespace ${PREVIEW_NAMESPACE})
+
+    # Previous preview deployment needs to be scaled to 0 to be replaced correctly
+    - name: Cleanup preview namespace
+      if: ${{ steps.preview_ns.outputs.exists }}
+      run: |
+        kubectl -n ${PREVIEW_NAMESPACE} scale deployment nuxeo-preview --replicas=0
+
+    - name: Create preview namespace
+      if: ${{ !steps.preview_ns.outputs.exists }}
+      run: |
+        kubectl create namespace ${PREVIEW_NAMESPACE}
+
+    - name: Install preview
+      id: preview
+      working-directory: ./storybook/charts/preview
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
+        helm init --client-only --stable-repo-url=https://charts.helm.sh/stable
+        helm repo add chartmuseum.jenkins-x.io https://storage.googleapis.com/chartmuseum.jenkins-x.io
+        helm build
+        helm install --namespace ${PREVIEW_NAMESPACE} --name ${PREVIEW_NAMESPACE} .
+        echo "PREVIEW_URL=preview-${PREVIEW_NAMESPACE}-webui.dev.nuxeo.com" >> $GITHUB_ENV
+
+    - uses: actions/github-script@0.9.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.issues.createComment({
+            issue_number: context.pull_request.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `:star: PR built and available [here](${process.env.PREVIEW_URL})`
+          })
