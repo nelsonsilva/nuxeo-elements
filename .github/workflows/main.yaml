@@ -1,32 +1,17 @@
-name: CI
+name: Unit Tests
 
 on:
   push:
     branches:
-      - github_actions
+      - github-actions
   pull_request:
     branches:
-      - github_actions
-
-env:
-  GKE_CLUSTER: jx-prod
-  GKE_ZONE: us-east1-b
+      - github-actions
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Get GKE credentials
-      uses: google-github-actions/get-gke-credentials@v0.2.1
-      with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
-        project_id: ${{ secrets.GKE_PROJECT }}
-        credentials: ${{ secrets.GKE_SA_KEY }}
-
-    - name: List namespaces
-      run: kubectl get namespaces
-
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
       with:
@@ -37,35 +22,15 @@ jobs:
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
-        cat $RUNNER_TEMP/.npmrc
         npm install --no-package-lock
         npm run bootstrap
     - name: Lint
       run: npm run lint
     - name: Test
-      if: ${{ false }}
       env:
         SAUCE_USERNAME: nuxeo-elements
         SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
       run: npm run test
-    - name: Analysis
-      run: npx lerna run analysis --parallel
-    - name: Build preview
-      if: github.event_name == 'pull_request'
-      run: |
-        npx build-storybook -o dist -s ./public
-        npx surge ./public $PREVIEW_URL --token ${{ secrets.SURGE_TOKEN }}
-    - uses: actions/github-script@0.9.0
-      if: github.event_name == 'pull_request'
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          github.issues.createComment({
-            issue_number: context.pull_request.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: `:star: PR built and available [here](${process.env.PREVIEW_URL})`
-          })
     - name: Deploy
       if: github.ref == 'master'
       env:
