@@ -9,7 +9,8 @@ on:
       - github-actions
 
 env:
-  DOCKER_REGISTRY: docker-registry.webui.dev.nuxeo.com
+  DOCKER_REGISTRY: us-east1-docker.pkg.dev
+  DOCKER_IMAGE: ${{ secrets.GKE_PROJECT }}/webui/nuxeo-elements/storybook
   GKE_CLUSTER: jx-prod
   GKE_ZONE: us-east1-b
 
@@ -50,11 +51,11 @@ jobs:
       uses: docker/build-push-action@v1
       with:
         registry: ${{ env.DOCKER_REGISTRY }}
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+        username: _json_key
+        password: ${{ secrets.GKE_SA_KEY }}
         path: ./storybook
         push: true
-        repository: nuxeo/nuxeo-elements/storybook
+        repository: ${{ env.DOCKER_IMAGE }}
         tags: ${{ env.VERSION }}
 
     - name: Get GKE credentials
@@ -71,11 +72,11 @@ jobs:
         echo ::set-output name=exists::$(kubectl get namespace ${PREVIEW_NAMESPACE})
 
     # Previous preview deployment needs to be scaled to 0 to be replaced correctly
-    - name: Cleanup preview namespace
-      if: ${{ steps.preview_ns.outputs.exists }}
-      continue-on-error: true
-      run: |
-        kubectl -n ${PREVIEW_NAMESPACE} scale deployment preview --replicas=0
+    # - name: Cleanup preview namespace
+    #   if: ${{ steps.preview_ns.outputs.exists }}
+    #   continue-on-error: true
+    #   run: |
+    #     kubectl -n ${PREVIEW_NAMESPACE} scale deployment preview --replicas=0
 
     - name: Create preview namespace
       if: ${{ !steps.preview_ns.outputs.exists }}
@@ -100,7 +101,7 @@ jobs:
         # install
         helm upgrade --install --namespace ${PREVIEW_NAMESPACE} ${PREVIEW_NAMESPACE} .
         
-        echo "PREVIEW_URL=preview-${PREVIEW_NAMESPACE}-webui.dev.nuxeo.com" >> $GITHUB_ENV
+        echo "PREVIEW_URL=preview-${PREVIEW_NAMESPACE}.dev.nuxeo.com" >> $GITHUB_ENV
 
     - uses: actions/github-script@0.9.0
       if: github.event_name == 'pull_request'
