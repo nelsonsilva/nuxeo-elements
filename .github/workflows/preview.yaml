@@ -1,10 +1,8 @@
 name: Preview
 
 on:
-  push:
-    branches:
-      - github-actions
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - github-actions
 
@@ -16,6 +14,7 @@ env:
 
 jobs:
   storybook:
+    if: (github.event.type == 'labeled' && github.event.label.name == 'preview') || (contains(github.event.pull_request.labels.*.name, 'preview')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -101,7 +100,7 @@ jobs:
         # install
         helm upgrade --install --namespace ${PREVIEW_NAMESPACE} ${PREVIEW_NAMESPACE} .
         
-        echo "PREVIEW_URL=preview-${PREVIEW_NAMESPACE}.dev.nuxeo.com" >> $GITHUB_ENV
+        echo "PREVIEW_URL=preview-${PREVIEW_NAMESPACE}.webui.dev.nuxeo.com" >> $GITHUB_ENV
 
     - uses: actions/github-script@0.9.0
       if: github.event_name == 'pull_request'
